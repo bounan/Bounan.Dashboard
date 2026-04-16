@@ -1,159 +1,129 @@
-# Turborepo starter
+# Bounan.Dashboard
 
-This Turborepo starter is maintained by the Turborepo core team.
+Static dashboard for validating GitHub backup snapshots and refetching individual DynamoDB rows through browser-safe AWS Cognito credentials.
 
-## Using this example
+## Apps
 
-Run the following command:
+- `apps/web`: Next.js static export frontend. No backend API routes.
+- `apps/infra`: AWS CDK app that provisions Cognito and read-only DynamoDB access for the dashboard.
 
-```sh
-npx create-turbo@latest
-```
+## Web app
 
-## What's inside?
+### How the dashboard works
 
-This Turborepo includes the following packages/apps:
+1. The user enters GitHub and optional Cognito settings on `Main Config`.
+2. `Check` validates access only. It does not fetch backup data.
+3. `Backup` loads root `*.jsonl` files from GitHub in a worker, normalizes them, applies rules, and caches the snapshot in IndexedDB.
+4. If AWS Cognito is configured, the dashboard enriches table identity with real DynamoDB key schema and can refetch individual entries from the browser.
+5. `Rules` is derived from the loaded backup snapshot and shows grouped violations plus entry-level update actions.
 
-### Apps and Packages
+### Data flow
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+1. GitHub worker fetches root `*.jsonl` files from the configured backup repo.
+2. Parsed records are normalized into table rows and structural issues.
+3. Rule engine evaluates normalized tables and emits rule findings and violation summaries.
+4. The validated snapshot is cached in IndexedDB and the small config is stored in `localStorage`.
+5. Backup and Rules screens render derived projections from the cached snapshot.
+6. Optional AWS recovery actions load live DynamoDB data and rerun validation against the updated tables.
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+### Identity model
 
-### Utilities
+- `row.id` is a UI/render key.
+- `rowIdentityKey` is the canonical business identity for schema-backed rows.
+- heuristic-only rows are browseable, but identity-dependent actions stay blocked until schema-backed identity is available.
 
-This Turborepo has some additional tools already setup for you:
+### Test layers
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+- unit tests cover domain logic, normalization, validation, and worker contracts
+- fixture e2e covers the normal browser flow without live credentials
+- real-token e2e remains opt-in for manual GitHub validation
 
-### Build
+### Main screens
 
-To build all apps and packages, run the following command:
+- `Main Config`
+  - Stores GitHub and Cognito settings in browser storage.
+  - Imports and exports JSON config files.
+  - `Check` only validates GitHub repository access.
+  - Does not fetch backup content.
+- `Backup`
+  - Loads root-level `*.jsonl` backup tables from the configured GitHub repo.
+  - Parses, validates, caches, and displays table data.
+  - Shows backup version metadata and allows manual refresh.
+  - Allows refetching the selected row directly from DynamoDB through Cognito.
+- `Rules`
+  - Displays the validation rules and aggregated violations.
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+### Storage model
 
-```sh
-cd my-turborepo
-turbo build
-```
+- Small config values are stored in `localStorage`.
+- Loaded backup snapshots are stored in IndexedDB.
+- All network requests are performed from the browser. Heavy backup loading work runs in a worker.
 
-Without global `turbo`, use your package manager:
+### AWS recovery flow
 
-```sh
-cd my-turborepo
-npx turbo build
-pnpm dlx turbo build
-pnpm exec turbo build
-```
+1. Cognito credentials are entered on `Main Config` and checked manually.
+2. Backup tables are loaded from GitHub as the base snapshot.
+3. If AWS settings are present, DynamoDB key schema can enrich row identity.
+4. The Backup screen can:
+   - refresh a whole table from DynamoDB
+   - refetch a selected row
+   - load a row by manually entered key fields even when it is missing from the snapshot
+5. After a live AWS action, validations are rerun and the updated snapshot is written back to IndexedDB.
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+### Where to change things
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+- Add a new validation rule:
+  - rule definitions and descriptions live under `apps/web/app/lib/rules`
+  - table-family evaluators live under `apps/web/app/lib/rules/evaluators`
+- Add a new backup/AWS action:
+  - controller wiring lives under `apps/web/app/features/dashboard/hooks`
+  - focused AWS action modules live under `apps/web/app/features/dashboard/hooks/aws-actions`
+- Add or change a main screen:
+  - screen composition lives under `apps/web/app/features/dashboard`
+  - reusable UI primitives live under `apps/web/app/components/ui`
 
-```sh
-turbo build --filter=docs
-```
+## AWS infra
 
-Without global `turbo`:
+`apps/infra` provisions the minimum auth stack required for browser-side DynamoDB reads:
 
-```sh
-npx turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
+- Cognito User Pool
+- Cognito User Pool Client
+- Cognito Identity Pool
+- `dashboard-readers` User Pool group
+- IAM role with read-only access to the configured DynamoDB table prefixes
 
-### Develop
+### CDK outputs
 
-To develop all apps and packages, run the following command:
+The stack emits these values:
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+- `AwsRegion`
+- `CognitoUserPoolId`
+- `CognitoUserPoolClientId`
+- `CognitoIdentityPoolId`
+- `ReaderGroupName`
+- `DashboardWebConfig`
 
-```sh
-cd my-turborepo
-turbo dev
-```
+`DashboardWebConfig` is a JSON string intended for direct import into the web app config screen.
+Create users manually and add them to the emitted reader group.
 
-Without global `turbo`, use your package manager:
+## Commands
 
-```sh
-cd my-turborepo
-npx turbo dev
-pnpm exec turbo dev
-pnpm exec turbo dev
-```
+### Web
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+- `pnpm --filter web run lint`
+- `pnpm --filter web run check-types`
+- `pnpm --filter web run build`
+- `pnpm --filter e2e run test:e2e`
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+### Infra
 
-```sh
-turbo dev --filter=web
-```
+- `pnpm --filter infra run lint`
+- `pnpm --filter infra run check-types`
+- `pnpm --filter infra run synth`
 
-Without global `turbo`:
+## Notes
 
-```sh
-npx turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-pnpm exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-pnpm exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+- GitHub access works from the browser because GitHub API supports CORS for authenticated requests.
+- AWS access must use browser-safe credentials. This project uses Cognito plus an Identity Pool instead of long-lived AWS secrets.
+- The dashboard is intentionally frontend-only and suitable for static hosting.
+- The existing GitHub Actions workflow runs lint, typecheck, unit tests, and fixture e2e before deploy jobs proceed.

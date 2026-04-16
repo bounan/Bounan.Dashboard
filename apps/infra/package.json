@@ -1,0 +1,25 @@
+{
+  "name": "infra",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check-types": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint --max-warnings 0 \"{bin,lib}/**/*.ts\"",
+    "synth": "cdk synth",
+    "deploy": "cdk deploy"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.217.0",
+    "constructs": "^10.4.2"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^25.6.0",
+    "aws-cdk": "^2.1014.0",
+    "eslint": "^9.39.1",
+    "ts-node": "^10.9.2",
+    "typescript": "6.0.2"
+  }
+}

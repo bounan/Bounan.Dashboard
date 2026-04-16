@@ -5,10 +5,16 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "check-types": "turbo run check-types"
+    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,cjs,json,md,css,yml,yaml,html}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,cjs,json,md,css,yml,yaml,html}\"",
+    "check-types": "turbo run check-types",
+    "test:unit": "turbo run test:unit",
+    "test:e2e:web": "pnpm --filter e2e run test:e2e",
+    "knip": "knip",
+    "check-all": "turbo run check-types test:unit lint //#format:check //#knip"
   },
   "devDependencies": {
+    "knip": "^6.4.1",
     "prettier": "^3.8.3",
     "turbo": "^2.9.6",
     "typescript": "6.0.2"

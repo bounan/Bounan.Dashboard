@@ -1,7 +1,9 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # Project files
-.idea
+.idea/
+cdk.out/
+.last-run.json
 
 # Dependencies
 node_modules

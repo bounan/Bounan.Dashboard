@@ -1,0 +1,19 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "exclude": ["exports", "types"],
+  "workspaces": {
+    "apps/e2e": {
+      "entry": ["**/*.spec.ts"]
+    },
+    "apps/infra": {
+      "entry": "bin/infra.ts",
+      "ignoreDependencies": ["ts-node"]
+    },
+    "apps/web": {
+      "entry": "**/page.tsx"
+    },
+    "packages/typescript-config": {
+      "ignoreUnresolved": ["next"]
+    }
+  }
+}

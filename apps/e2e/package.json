@@ -1,0 +1,14 @@
+{
+  "name": "e2e",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test:e2e": "playwright test e2e/fixture-backup.spec.ts",
+    "test:e2e:all": "playwright test",
+    "test:e2e:real": "playwright test e2e/real-backup.spec.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1"
+  }
+}

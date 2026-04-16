@@ -5,17 +5,61 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "outputs": [".next/**", "!.next/cache/**"],
+      "env": [
+        "BACKUP_TOKEN",
+        "BACKUP_REPO",
+        "RUN_REAL_BACKUP_E2E",
+        "NODE_ENV",
+        "NEXT_PUBLIC_BASE_PATH"
+      ]
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "dependsOn": ["^lint"],
+      "env": [
+        "BACKUP_TOKEN",
+        "BACKUP_REPO",
+        "RUN_REAL_BACKUP_E2E",
+        "NODE_ENV",
+        "NEXT_PUBLIC_BASE_PATH"
+      ]
     },
     "check-types": {
-      "dependsOn": ["^check-types"]
+      "dependsOn": ["^check-types"],
+      "env": [
+        "BACKUP_TOKEN",
+        "BACKUP_REPO",
+        "RUN_REAL_BACKUP_E2E",
+        "NODE_ENV",
+        "NEXT_PUBLIC_BASE_PATH"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": ["^test:unit"],
+      "env": [
+        "BACKUP_TOKEN",
+        "BACKUP_REPO",
+        "RUN_REAL_BACKUP_E2E",
+        "NODE_ENV",
+        "NEXT_PUBLIC_BASE_PATH"
+      ]
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": [
+        "BACKUP_TOKEN",
+        "BACKUP_REPO",
+        "RUN_REAL_BACKUP_E2E",
+        "NODE_ENV",
+        "NEXT_PUBLIC_BASE_PATH"
+      ]
+    },
+    "//#format:check": {
+      "cache": false
+    },
+    "//#knip": {
+      "cache": false
     }
   }
 }
